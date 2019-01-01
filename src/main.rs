@@ -1,74 +1,7 @@
+mod lib;
+use lib::{ IterableMapping, process_bytecode, process_pc };
 use std::env;
-use std::collections::HashMap;
 use std::fs;
-
-struct IterableMapping<T, K> {
-    map: HashMap<T, K>,
-    total: i32 
-}
-
-impl<T: std::cmp::Eq + std::hash::Hash + Copy, K> IterableMapping<T, K> {
-    fn put(mut self, key: T, value: K) -> IterableMapping<T, K> {
-        match self.at(key) {
-            None => {
-                self.map.insert(key, value);
-                self.total += 1;
-            }
-            Some(_) => ()
-        };
-        self
-    } 
-    fn at(&self, key: T) -> Option<&K> {
-        self.map.get(&key)
-    }
-}
-
-fn process_bytecode(bytecode: Vec<u8>) -> IterableMapping<i32, bool> {
-    let mut result: IterableMapping<i32, bool> = IterableMapping { map: HashMap::new(), total: 0 };
-    let flip = |x: usize, m: IterableMapping<i32, bool>| m.put(x as i32, true);
-    let mut i = 0;
-    while i < bytecode.len() { 
-        // Flip all the numbers that represent valid ethereum opcodes
-        match bytecode[i] {
-            0x00 ... 0x0b => result = flip(i, result),
-            0x10 ... 0x1a => result = flip(i, result),
-            0x20          => result = flip(i, result), 
-            0x30 ... 0x3e => result = flip(i, result),
-            0x40 ... 0x45 => result = flip(i, result),
-            0x50 ... 0x5b => result = flip(i, result),
-            op @0x60 ... 0x7f => {
-                result = flip(i, result);
-                i += (op as usize) - 0x5f;
-            }
-            0x80 ... 0x8f => result = flip(i, result), 
-            0x90 ... 0x9f => result = flip(i, result),
-            0xa0 ... 0xa4 => result = flip(i, result),
-            0xf0 ... 0xf4 => result = flip(i, result),
-            0xfd ... 0xff => result = flip(i, result),
-            _ => continue 
-        };
-        i += 1;
-    }
-    result
-}
-
-// Processes the contents of an output file to produce a vector
-// of integers that were the program counters used during the test suite.
-fn process_pc(contents: String) -> Vec<i32> {
-    let mut result: Vec<i32> = Vec::new();
-    let split = contents.split("PC: ");
-    for s in split {
-        let s = s.trim();
-        match s {
-            "" => continue,
-            _ => {
-                let pc = s.parse::<i32>().unwrap(); 
-                result.push(pc)
-            }
-        };
-    }
-    return result;
-}
 
 fn coverage(mut byte_set: IterableMapping<i32, bool>, pc_set: Vec<i32>) -> f32 {
     let mut total: i32 = 0;
@@ -97,7 +30,7 @@ fn main() {
     }
     let ref bytecode_input = args[1];
     let ref pc_input = args[2];
-    let bytecode_contents = fs::read(bytecode_input).
+    let bytecode_contents = fs::read_to_string(bytecode_input).
         expect("Error: There was an issue reading the bytecode input file");
     let pc_contents = fs::read_to_string(pc_input).
         expect("Error: There was an issue reading the PC input file");
@@ -107,42 +40,12 @@ fn main() {
 }
 
 #[cfg(test)]
-mod bytecode_tests {
-    use super::*;
-
-    #[test]
-    fn no_push1() {
-        let test_vector: Vec<u8> = vec![ 0x01, 0x02, 0x00, 0x04, 0x0a ];
-        let test_result = process_bytecode(test_vector);
-        assert_eq!(test_result.total, 5);
-        for i in 0 .. 5 {
-            assert_eq!(test_result.at(i), Some(&true));
-        }
-    }
-}
-
-#[cfg(test)]
-mod pc_tests { 
-    use super::*;
-
-    #[test]
-    fn in_order1() {
-        let test_string = "PC: 0\nPC: 1\nPC: 2\nPC: 3\nPC: 4"; 
-        let test_result = process_pc(String::from(test_string));
-        assert_eq!(test_result.len(), 5);
-        for i in 0 .. 5 {
-            assert_eq!(test_result[i], i as i32); 
-        }
-    } 
-}
-
-#[cfg(test)]
 mod integration_tests {
     use super::*;
 
     #[test]
     fn sanity_check() {
-        let bytecode_contents = fs::read("test/sanity/bytecode.bytes").
+        let bytecode_contents = fs::read_to_string("test/sanity/bytecode.txt").
             expect("Error: There was an issue reading the bytecode input file");
         let pc_contents = fs::read_to_string("test/sanity/output.txt").
             expect("Error: There was an issue reading the PC input file");
