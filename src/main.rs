@@ -8,14 +8,33 @@ struct IterableMapping<T, K> {
 }
 
 fn process_bytecode(bytecode: Vec<u8>) -> IterableMapping<i32, bool> {
-    let result: IterableMapping<i32, bool> = IterableMapping { map: HashMap::new(), keys: Vec::new() };
+    let mut result: IterableMapping<i32, bool> = IterableMapping { map: HashMap::new(), keys: Vec::new() };
+    let flip = |x: usize, mut m: IterableMapping<i32, bool>| { 
+        m.map.insert(x as i32, true);
+        m
+    };
     let mut i = 0;
     while i < bytecode.len() {
-        i += 1;
+        // Flip all the numbers that represent valid ethereum opcodes
         match bytecode[i] {
-            // FIXME
-            _ => println!("FIXME")
-        }
+            0x00 ... 0x0b => result = flip(i, result),
+            0x10 ... 0x1a => result = flip(i, result),
+            0x20          => result = flip(i, result),
+            0x30 ... 0x3e => result = flip(i, result),
+            0x40 ... 0x45 => result = flip(i, result),
+            0x50 ... 0x5b => result = flip(i, result),
+            op @0x60 ... 0x7f => {
+                i += (op as usize) - 0x5f;
+                result = flip(i, result);
+            }
+            0x80 ... 0x8f => result = flip(i, result), 
+            0x90 ... 0x9f => result = flip(i, result),
+            0xa0 ... 0xa4 => result = flip(i, result),
+            0xf0 ... 0xf4 => result = flip(i, result),
+            0xfd ... 0xff => result = flip(i, result),
+            _ => continue 
+        };
+        i += 1;
     }
     result
 }
