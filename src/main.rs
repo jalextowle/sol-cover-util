@@ -17,8 +17,7 @@ impl<T: std::cmp::Eq + std::hash::Hash + Copy, K> IterableMapping<T, K> {
             Some(_) => ()
         };
         self
-    }
-
+    } 
     fn at(&self, key: T) -> Option<&K> {
         self.map.get(&key)
     }
@@ -33,11 +32,11 @@ fn process_bytecode(bytecode: Vec<u8>) -> IterableMapping<i32, bool> {
         match bytecode[i] {
             0x00 ... 0x0b => result = flip(i, result),
             0x10 ... 0x1a => result = flip(i, result),
-            0x20          => result = flip(i, result), 0x30 ... 0x3e => result = flip(i, result),
+            0x20          => result = flip(i, result), 
+            0x30 ... 0x3e => result = flip(i, result),
             0x40 ... 0x45 => result = flip(i, result),
             0x50 ... 0x5b => result = flip(i, result),
             op @0x60 ... 0x7f => {
-                println!("Got Here: 27");
                 result = flip(i, result);
                 i += (op as usize) - 0x5f;
             }
@@ -71,20 +70,21 @@ fn process_pc(contents: String) -> Vec<i32> {
     return result;
 }
 
-fn coverage(mut byte_set: IterableMapping<i32, bool>, pc_set: Vec<i32>) -> i32 {
+fn coverage(mut byte_set: IterableMapping<i32, bool>, pc_set: Vec<i32>) -> f32 {
     let mut total: i32 = 0;
     for pc in pc_set {
-        match byte_set.map.get(&pc) {
-            // FIXME
-            None => panic!("Line 40 in main.rs"),
+        match byte_set.at(pc) {
+            None => continue,
             Some(false) => continue, 
             Some(true) => { 
                 total += 1;
+                // I am breaking the abstraction barrier so that the total index will not be
+                // incremented TODO I think it already wouldn't increment
                 byte_set.map.insert(pc, false);
             }
-        }
+        };
     }
-    total / byte_set.total
+    total as f32 / byte_set.total as f32
 }
 
 // Takes in one commandline argument that specifies an input file. This input file 
@@ -103,11 +103,21 @@ fn main() {
         expect("Error: There was an issue reading the PC input file");
     let byte_set = process_bytecode(bytecode_contents);
     let pc_set = process_pc(pc_contents);
-    println!("{}", coverage(byte_set, pc_set));
-    /*
-    let x = 0;
-    let z = 2;
-    println!("{}", byte_set.map.get(&x).expect("Whoops"));
-    println!("{}", byte_set.map.get(&z).expect("Whoops"));
-    */
+    println!("Code Coverage: {}", coverage(byte_set, pc_set));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanity_check() {
+        let bytecode_contents = fs::read("test/sanity/bytecode.bytes").
+            expect("Error: There was an issue reading the bytecode input file");
+        let pc_contents = fs::read_to_string("test/sanity/output.txt").
+            expect("Error: There was an issue reading the PC input file");
+        let byte_set = process_bytecode(bytecode_contents);
+        let pc_set = process_pc(pc_contents);
+        assert_eq!(coverage(byte_set, pc_set), 1.0);
+    }
 }
