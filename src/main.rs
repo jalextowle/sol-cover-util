@@ -107,7 +107,37 @@ fn main() {
 }
 
 #[cfg(test)]
-mod tests {
+mod bytecode_tests {
+    use super::*;
+
+    #[test]
+    fn no_push1() {
+        let test_vector: Vec<u8> = vec![ 0x01, 0x02, 0x00, 0x04, 0x0a ];
+        let test_result = process_bytecode(test_vector);
+        assert_eq!(test_result.total, 5);
+        for i in 0 .. 5 {
+            assert_eq!(test_result.at(i), Some(&true));
+        }
+    }
+}
+
+#[cfg(test)]
+mod pc_tests { 
+    use super::*;
+
+    #[test]
+    fn in_order1() {
+        let test_string = "PC: 0\nPC: 1\nPC: 2\nPC: 3\nPC: 4"; 
+        let test_result = process_pc(String::from(test_string));
+        assert_eq!(test_result.len(), 5);
+        for i in 0 .. 5 {
+            assert_eq!(test_result[i], i as i32); 
+        }
+    } 
+}
+
+#[cfg(test)]
+mod integration_tests {
     use super::*;
 
     #[test]
