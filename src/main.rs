@@ -4,15 +4,29 @@ use std::fs;
 
 struct IterableMapping<T, K> {
     map: HashMap<T, K>,
-    keys: Vec<T>
+    total: i32 
+}
+
+impl<T: std::cmp::Eq + std::hash::Hash + Copy, K> IterableMapping<T, K> {
+    fn put(mut self, key: T, value: K) -> IterableMapping<T, K> {
+        match self.at(key) {
+            None => {
+                self.map.insert(key, value);
+                self.total += 1;
+            }
+            Some(_) => ()
+        };
+        self
+    }
+
+    fn at(&self, key: T) -> Option<&K> {
+        self.map.get(&key)
+    }
 }
 
 fn process_bytecode(bytecode: Vec<u8>) -> IterableMapping<i32, bool> {
-    let mut result: IterableMapping<i32, bool> = IterableMapping { map: HashMap::new(), keys: Vec::new() };
-    let flip = |x: usize, mut m: IterableMapping<i32, bool>| { 
-        m.map.insert(x as i32, true);
-        m
-    };
+    let mut result: IterableMapping<i32, bool> = IterableMapping { map: HashMap::new(), total: 0 };
+    let flip = |x: usize, m: IterableMapping<i32, bool>| m.put(x as i32, true);
     let mut i = 0;
     while i < bytecode.len() {
         // Flip all the numbers that represent valid ethereum opcodes
@@ -24,8 +38,9 @@ fn process_bytecode(bytecode: Vec<u8>) -> IterableMapping<i32, bool> {
             0x40 ... 0x45 => result = flip(i, result),
             0x50 ... 0x5b => result = flip(i, result),
             op @0x60 ... 0x7f => {
-                i += (op as usize) - 0x5f;
+                println!("Got Here: 27");
                 result = flip(i, result);
+                i += (op as usize) - 0x5f;
             }
             0x80 ... 0x8f => result = flip(i, result), 
             0x90 ... 0x9f => result = flip(i, result),
@@ -64,7 +79,7 @@ fn coverage(mut byte_set: IterableMapping<i32, bool>, pc_set: Vec<i32>) -> i32 {
             }
         }
     }
-    total / byte_set.keys.len() as i32
+    total / byte_set.total
 }
 
 // Takes in one commandline argument that specifies an input file. This input file 
@@ -76,12 +91,15 @@ fn main() {
         panic!("Error: Wrong number of arguments provided");
     }
     let ref bytecode_input = args[1];
-    let ref pc_input = args[2];
+    //let ref pc_input = args[2];
     let bytecode_contents = fs::read(bytecode_input).
         expect("Error: There was an issue reading the bytecode input file");
-    let pc_contents = fs::read_to_string(pc_input).
-        expect("Error: There was an issue reading the PC input file");
+    //let pc_contents = fs::read_to_string(pc_input).
+    //    expect("Error: There was an issue reading the PC input file");
     let byte_set = process_bytecode(bytecode_contents);
-    let pc_set = process_pc(pc_contents);
-    
+    //let pc_set = process_pc(pc_contents);
+    let x = 0;
+    let z = 2;
+    println!("{}", byte_set.map.get(&x).expect("Whoops"));
+    println!("{}", byte_set.map.get(&z).expect("Whoops"));
 }
