@@ -1,5 +1,5 @@
 # WIP
-This analyzer is a work in progress and as such should not be used in production. This disclaimer will be removed when the tool has been more thoroughly tested and works correctly. 
+This analyzer is a work in progress and as such should not be used in production. This disclaimer will be removed when the tool has been more thoroughly tested and works correctly. Additionally, I have started to work on a similar project written in NodeJS for faster protyping and a wider developer audience, so it may be some time before those changes are integrated into this repository. 
 
 # Solidity Code Coverage Analyzer
 
